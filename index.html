@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>감자 깎기</title>
+<!-- Widget Web JS 위젯 필수: 위젯 제목 -->
+<meta name="js-widget-title" content="감자 깎기">
+
+<style>
+  :root {
+    --bg: #fff4dc;
+    --ink: #4a3220;
+    --sub: #9a7b5c;
+    --dot-off: #e8d3b0;
+    --dot-on: #c98a3c;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg);
+    font-family: -apple-system, "Apple SD Gothic Neo", "Helvetica Neue", sans-serif;
+    color: var(--ink);
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4vw;
+    padding: 3vh 5vw;
+  }
+  /* 감자 전체가 하나의 누르는 곳 */
+  .potato-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    flex: 0 0 auto;
+    /* 위젯 위에 겹쳐지는 버튼: 평소엔 투명, 누르면 살짝 어둡게 */
+    --wweb2-overlay-btn-color: rgba(0, 0, 0, 0.0);
+    --wweb2-overlay-btn-press-color: rgba(120, 70, 20, 0.18);
+    --wweb2-overlay-btn-corner-radius: 30%;
+    --wweb2-overlay-btn-padding: -4%;
+  }
+  .potato-btn svg {
+    width: min(46vw, 78vh);
+    height: auto;
+    display: block;
+  }
+  .dots {
+    display: flex;
+    gap: 1.6vw;
+    margin-top: 1.5vh;
+  }
+  .dot {
+    width: 2.2vw;
+    height: 2.2vw;
+    min-width: 6px;
+    min-height: 6px;
+    border-radius: 50%;
+    background: var(--dot-off);
+  }
+  .dot.on { background: var(--dot-on); }
+
+  .money {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+  }
+  .money .label {
+    font-size: max(11px, 3.6vw);
+    color: var(--sub);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .money .amount {
+    font-size: max(28px, 12vw);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .money .amount small {
+    font-size: 0.45em;
+    font-weight: 700;
+    margin-left: 0.1em;
+  }
+  .money .hint {
+    margin-top: 0.6vh;
+    font-size: max(11px, 3.4vw);
+    color: var(--sub);
+    font-weight: 600;
+    min-height: 1.3em;
+  }
+  .money .hint.earned {
+    color: #d0731c;
+    font-weight: 800;
+  }
+  /* 작은(정사각형) 위젯 */
+  @media (max-aspect-ratio: 5/4) {
+    body { flex-direction: column; gap: 1vh; padding: 4vh 4vw; }
+    .potato-btn svg { width: min(78vw, 52vh); }
+    .dots { gap: 2.4vw; margin-top: 0.6vh; }
+    .dot { width: 3.6vw; height: 3.6vw; }
+    .money { align-items: center; }
+    .money .label, .money .hint { display: none; }
+    .money .amount { font-size: max(22px, 13vw); }
+  }
+</style>
+
+<script>
+  // ── Widget Web 연동: 준비되면 바로 찍어 달라고 알림 ──
+  function __wweb2WaitMillisecondsToWidgetIsReady(currentDelayMs) {
+    return 0;
+  }
+
+  // ── 쿠키 저장/불러오기 (위젯과 앱이 함께 씀) ──
+  function saveState(s) {
+    var v = [s.faces.join(","), s.angle, s.money, s.taps, s.flash ? 1 : 0].join("|");
+    document.cookie = "potato=" + encodeURIComponent(v) + "; max-age=315360000; path=/";
+  }
+  function loadState() {
+    var m = document.cookie.match(/(?:^|;\s*)potato=([^;]*)/);
+    if (m) {
+      var p = decodeURIComponent(m[1]).split("|");
+      if (p.length === 5) {
+        var faces = p[0].split(",").map(function (x) { return parseInt(x, 10) || 0; });
+        if (faces.length === 4) {
+          return {
+            faces: faces,
+            angle: parseInt(p[1], 10) || 0,
+            money: parseInt(p[2], 10) || 0,
+            taps: parseInt(p[3], 10) || 0,
+            flash: p[4] === "1"
+          };
+        }
+      }
+    }
+    return { faces: [0, 0, 0, 0], angle: 0, money: 0, taps: 0, flash: false };
+  }
+
+  var state = loadState();
+
+  // ── 한 번 톡: 정면 껍질 한 겹 벗기고, 다음 깔 곳으로 감자를 돌림 ──
+  // 감자는 4면 × 2겹 = 8번 누르면 다 까짐
+  function peel() {
+    state.taps += 1;
+    state.flash = false;
+    state.faces[state.angle] = Math.min(2, state.faces[state.angle] + 1);
+
+    var done = state.faces.every(function (f) { return f >= 2; });
+    if (done) {
+      state.money += 1;
+      state.flash = true;
+      state.faces = [0, 0, 0, 0];
+      state.angle = 0;
+    } else {
+      // 다음 면부터 돌면서 아직 덜 깐 면을 정면으로
+      for (var i = 1; i <= 4; i++) {
+        var next = (state.angle + i) % 4;
+        if (state.faces[next] < 2) { state.angle = next; break; }
+      }
+    }
+    saveState(state);
+  }
+
+  // ── 위젯에서 눌렸을 때: 주소 끝(#action=peel&n=…)을 읽어 처리 ──
+  // n은 "몇 번째 누름인지" 표시. 위젯이 같은 주소를 다시 열어도 두 번 깎이지 않게 막음.
+  (function handleWidgetTap() {
+    var hash = window.location.hash.replace(/^#/, "");
+    var params = new URLSearchParams(hash);
+    if (params.get("action") === "peel" && parseInt(params.get("n"), 10) === state.taps) {
+      peel();
+    }
+  })();
+</script>
+</head>
+
+<body>
+  <a class="potato-btn" id="potato" href="#action=peel&n=0">
+    <svg id="art" viewBox="0 0 200 170" xmlns="http://www.w3.org/2000/svg" aria-label="감자"></svg>
+    <div class="dots" id="dots"></div>
+  </a>
+
+  <div class="money">
+    <div class="label">모은 돈</div>
+    <div class="amount" id="amount">0<small>원</small></div>
+    <div class="hint" id="hint">톡 눌러서 까기</div>
+  </div>
+
+<script>
+  // 껍질 상태별 색: 0 = 껍질 그대로, 1 = 반쯤, 2 = 다 깐 속살
+  var SKIN = "#a8713f", SKIN_DARK = "#8b5a2f", FLESH = "#f6dd8f", FLESH_DARK = "#e9c86b";
+
+  // 면마다 다른 눈(감자 점) 위치 → 돌아갈 때 다른 면이 보이는 느낌
+  var EYES = [
+    [[82, 70], [118, 98], [95, 118]],
+    [[110, 66], [88, 96], [116, 122]],
+    [[96, 62], [122, 84], [84, 110]],
+    [[86, 84], [112, 64], [104, 112]]
+  ];
+
+  function faceFill(state, id) {
+    if (state === 2) return FLESH;
+    if (state === 1) return "url(#half-" + id + ")";
+    return SKIN;
+  }
+
+  function draw() {
+    var f = state.faces, a = state.angle;
+    var left = (a + 3) % 4, right = (a + 1) % 4;
+
+    var svg = "";
+    svg += '<defs>';
+    // 반쯤 깐 면: 속살 위에 껍질 줄무늬가 남은 모양
+    ["L", "C", "R"].forEach(function (id) {
+      svg += '<pattern id="half-' + id + '" width="46" height="40" patternUnits="userSpaceOnUse" patternTransform="rotate(' + (id === "C" ? 12 : -20) + ')">' +
+             '<rect width="46" height="40" fill="' + FLESH + '"/>' +
+             '<path d="M2 4 C10 0 22 2 24 9 C26 16 14 19 7 16 C0 13 -2 7 2 4 Z" fill="' + SKIN + '"/>' +
+             '<path d="M28 20 C36 17 45 21 44 28 C43 34 32 35 28 31 C24 27 23 22 28 20 Z" fill="' + SKIN + '"/>' +
+             '<path d="M6 27 C10 25 16 27 15 31 C14 35 8 36 5 33 C3 31 3 28 6 27 Z" fill="' + SKIN + '"/>' +
+             '</pattern>';
+    });
+    svg += '<clipPath id="body"><path d="' + bodyPath() + '"/></clipPath>';
+    svg += '<radialGradient id="shade" cx="38%" cy="30%" r="75%">' +
+           '<stop offset="0" stop-color="#fff" stop-opacity="0.45"/>' +
+           '<stop offset="0.45" stop-color="#fff" stop-opacity="0"/>' +
+           '<stop offset="1" stop-color="#3a1f08" stop-opacity="0.38"/>' +
+           '</radialGradient>';
+    svg += '</defs>';
+
+    // 바닥 그림자
+    svg += '<ellipse cx="100" cy="152" rx="62" ry="9" fill="#3a1f08" opacity="0.13"/>';
+
+    var TILT = [-6, 5, -2, 8];
+    svg += '<g transform="rotate(' + TILT[a] + ' 100 88)">';
+    svg += '<g clip-path="url(#body)">';
+    // 왼쪽 옆면 / 오른쪽 옆면
+    svg += '<rect x="0" y="0" width="100" height="170" fill="' + faceFill(f[left], "L") + '"/>';
+    svg += '<rect x="100" y="0" width="100" height="170" fill="' + faceFill(f[right], "R") + '"/>';
+    // 정면 (가운데 볼록한 부분)
+    svg += '<ellipse cx="100" cy="88" rx="46" ry="60" fill="' + faceFill(f[a], "C") + '"/>';
+    // 정면 감자 눈: 껍질이 남아 있을 때만
+    if (f[a] < 2) {
+      EYES[a].forEach(function (p) {
+        svg += '<ellipse cx="' + p[0] + '" cy="' + p[1] + '" rx="3.2" ry="2.2" fill="' + SKIN_DARK + '" opacity="' + (f[a] === 1 ? 0.55 : 1) + '"/>';
+      });
+    }
+    // 입체감
+    svg += '<rect x="0" y="0" width="200" height="170" fill="url(#shade)"/>';
+    svg += '</g>';
+    // 외곽선
+    svg += '<path d="' + bodyPath() + '" fill="none" stroke="' + (f.every(function (x) { return x === 2; }) ? FLESH_DARK : SKIN_DARK) + '" stroke-width="2.2"/>';
+    svg += '</g>';
+
+    document.getElementById("art").innerHTML = svg;
+
+    // 진행 점 8개
+    var peeled = f.reduce(function (s, x) { return s + x; }, 0);
+    var dots = "";
+    for (var i = 0; i < 8; i++) dots += '<span class="dot' + (i < peeled ? " on" : "") + '"></span>';
+    document.getElementById("dots").innerHTML = dots;
+
+    // 돈
+    document.getElementById("amount").innerHTML = state.money.toLocaleString("ko-KR") + "<small>원</small>";
+    var hint = document.getElementById("hint");
+    if (state.flash) {
+      hint.textContent = "+1원! 새 감자";
+      hint.className = "hint earned";
+    } else {
+      hint.textContent = peeled === 0 ? "톡 눌러서 까기" : (8 - peeled) + "번 남음";
+      hint.className = "hint";
+    }
+
+    // 다음 누름 주소 갱신 (위젯용)
+    document.getElementById("potato").setAttribute("href", "#action=peel&n=" + state.taps);
+  }
+
+  // 울퉁불퉁한 감자 모양
+  function bodyPath() {
+    return "M62 36 C86 18 136 20 162 40 C184 58 188 100 168 124 " +
+           "C148 148 92 154 58 140 C30 128 16 96 26 68 C32 52 46 44 62 36 Z";
+  }
+
+  // 브라우저에서 직접 누를 때 (위젯이 아닐 때)
+  document.getElementById("potato").addEventListener("click", function (e) {
+    e.preventDefault();
+    peel();
+    draw();
+  });
+
+  draw();
+</script>
+</body>
+</html>
