@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>감자 공방</title>
+<!-- Widget Web JS 위젯 필수: 위젯 제목 -->
+<meta name="js-widget-title" content="감자 공방">
+
+<style>
+  :root {
+    --bg1: #4b2f1a;
+    --bg2: #24160b;
+    --cream: #fff4dc;
+    --sub: #c4a581;
+    --gold: #f2b53c;
+    --gold-ink: #3b2616;
+    --tile: rgba(255, 244, 220, 0.07);
+    --tile-on: rgba(242, 181, 60, 0.16);
+    --warn: #ff7a59;
+  }
+  * { box-sizing: border-box; }
+  /* 1rem = 위젯 높이의 1/16 → 작은·중간 위젯 모두 같은 비율 */
+  html { font-size: calc(100vmin / 16); }
+  html, body {
+    margin: 0;
+    height: 100%;
+    font-family: -apple-system, "Apple SD Gothic Neo", "Helvetica Neue", sans-serif;
+    color: var(--cream);
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    background: radial-gradient(120% 90% at 15% 0%, var(--bg1) 0%, var(--bg2) 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding: 0.95rem 0.95rem 0.95rem;
+  }
+
+  .head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 0 0.2rem;
+    line-height: 1.2;
+  }
+  .head .title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--sub);
+    letter-spacing: -0.02em;
+  }
+  .head .money {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--gold);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .head .money small { font-size: 0.75em; margin-left: 0.08em; }
+
+  .rows {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    min-height: 0;
+  }
+  .row {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0 0.65rem 0 0.55rem;
+    border-radius: 0.95rem;
+    background: var(--tile);
+    color: inherit;
+    text-decoration: none;
+    --wweb2-overlay-btn-color: rgba(0, 0, 0, 0.0);
+    --wweb2-overlay-btn-press-color: rgba(255, 244, 220, 0.16);
+    --wweb2-overlay-btn-corner-radius: 22%;
+  }
+  .row.on { background: var(--tile-on); }
+  .row.armed {
+    background: rgba(255, 122, 89, 0.2);
+    box-shadow: inset 0 0 0 0.12rem var(--warn);
+  }
+
+  .ico {
+    flex: 0 0 auto;
+    width: 2.05rem;
+    height: 2.05rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 0.95rem;
+    letter-spacing: -0.04em;
+    background: rgba(255, 244, 220, 0.12);
+    color: var(--sub);
+  }
+  .on .ico { background: var(--gold); color: var(--gold-ink); }
+  .ico.coin {
+    background: radial-gradient(circle at 35% 30%, #ffd77a 0%, var(--gold) 55%, #c98a1c 100%);
+    color: var(--gold-ink);
+    box-shadow: inset 0 0 0 0.14rem rgba(59, 38, 22, 0.25);
+    font-size: 0.85rem;
+  }
+  .ico svg { width: 1.15rem; height: 1.15rem; display: block; }
+  .armed .ico { background: var(--warn); color: #2a0f06; }
+
+  .txt { flex: 1; min-width: 0; line-height: 1.18; }
+  .txt b {
+    display: block;
+    font-size: 1.13rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .txt span {
+    display: block;
+    margin-top: 0.1rem;
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: var(--sub);
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .armed .txt span { color: #ffb7a3; }
+
+  .switch {
+    flex: 0 0 auto;
+    width: 2.45rem;
+    height: 1.45rem;
+    border-radius: 1rem;
+    background: rgba(255, 244, 220, 0.18);
+    position: relative;
+  }
+  .switch i {
+    position: absolute;
+    top: 0.17rem;
+    left: 0.17rem;
+    width: 1.11rem;
+    height: 1.11rem;
+    border-radius: 50%;
+    background: var(--cream);
+    box-shadow: 0 0.06rem 0.2rem rgba(0, 0, 0, 0.35);
+  }
+  .on .switch { background: var(--gold); }
+  .on .switch i { left: 1.17rem; background: #fffaf0; }
+
+  .plus {
+    flex: 0 0 auto;
+    width: 1.55rem;
+    height: 1.55rem;
+    border-radius: 50%;
+    background: rgba(255, 244, 220, 0.14);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--cream);
+    line-height: 1;
+  }
+  .plus.max {
+    width: auto;
+    padding: 0 0.5rem;
+    border-radius: 1rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--gold);
+    background: rgba(242, 181, 60, 0.14);
+  }
+
+  /* 중간(가로로 긴) 위젯: 세 칸을 가로로 */
+  @media (min-aspect-ratio: 5/4) {
+    .rows { flex-direction: row; gap: 0.55rem; }
+    .row {
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 0.75rem 0.8rem 0.8rem;
+      gap: 0;
+      position: relative;
+    }
+    .row .switch, .row .plus { position: absolute; top: 0.85rem; right: 0.8rem; }
+    .txt { flex: 0 0 auto; width: 100%; }
+    .txt b { font-size: 1.2rem; }
+    .ico { width: 2.2rem; height: 2.2rem; }
+  }
+</style>
+
+<script>
+  function __wweb2WaitMillisecondsToWidgetIsReady(currentDelayMs) {
+    return 0;
+  }
+
+  // ── 쿠키 (감자 위젯과 함께 씀) ──
+  function readCookie(name) {
+    var m = document.cookie.match(new RegExp("(?:^|;\\s*)" + name + "=([^;]*)"));
+    return m ? decodeURIComponent(m[1]) : null;
+  }
+  function writeCookie(name, value) {
+    document.cookie = name + "=" + encodeURIComponent(value) + "; max-age=315360000; path=/";
+  }
+
+  // 감자 상태 (감자 위젯과 같은 형식)
+  function loadPotato() {
+    var v = readCookie("potato2");
+    if (v) {
+      var p = v.split("|");
+      if (p.length === 5) {
+        var faces = p[0].split(",").map(function (x) { return parseInt(x, 10) || 0; });
+        if (faces.length === 4) {
+          return {
+            faces: faces,
+            angle: parseInt(p[1], 10) || 0,
+            money: parseInt(p[2], 10) || 0,
+            taps: parseInt(p[3], 10) || 0,
+            flash: parseInt(p[4], 10) || 0
+          };
+        }
+      }
+    }
+    var money = 0;
+    var old = readCookie("potato");
+    if (old) {
+      var q = old.split("|");
+      if (q.length === 5) money = parseInt(q[2], 10) || 0;
+    }
+    return { faces: [0, 0, 0, 0], angle: 0, money: money, taps: 0, flash: 0 };
+  }
+  function savePotato(s) {
+    writeCookie("potato2", [s.faces.join(","), s.angle, s.money, s.taps, s.flash].join("|"));
+  }
+
+  // 업그레이드 상태: 두 번씩(0/1), 감자당 돈(1~9), 초기화 대기(0/1), 누른 횟수
+  var MAX_RW = 9;
+  function loadUpgrade() {
+    var u = { dbl: 0, rw: 1, armed: 0, taps: 0 };
+    var v = readCookie("upgrade2");
+    if (v) {
+      var p = v.split("|");
+      if (p.length === 4) {
+        u.dbl = p[0] === "1" ? 1 : 0;
+        u.rw = Math.max(1, Math.min(MAX_RW, parseInt(p[1], 10) || 1));
+        u.armed = p[2] === "1" ? 1 : 0;
+        u.taps = parseInt(p[3], 10) || 0;
+      }
+    }
+    return u;
+  }
+  function saveUpgrade(u) {
+    writeCookie("upgrade2", [u.dbl, u.rw, u.armed, u.taps].join("|"));
+  }
+
+  var up = loadUpgrade();
+
+  function act(action) {
+    up.taps += 1;
+    if (action === "dbl") {
+      up.dbl = up.dbl ? 0 : 1;
+      up.armed = 0;
+    } else if (action === "rw") {
+      up.rw = Math.min(MAX_RW, up.rw + 1);
+      up.armed = 0;
+    } else if (action === "reset") {
+      if (up.armed) {
+        // 진짜 초기화: 돈·감자·업그레이드 처음으로 (누른 횟수는 그대로 둬서 감자 위젯이 헛누름하지 않게)
+        var pt = loadPotato();
+        pt.faces = [0, 0, 0, 0];
+        pt.angle = 0;
+        pt.money = 0;
+        pt.flash = 0;
+        savePotato(pt);
+        up.dbl = 0;
+        up.rw = 1;
+        up.armed = 0;
+      } else {
+        up.armed = 1;
+      }
+    }
+    saveUpgrade(up);
+  }
+
+  // ── 위젯에서 눌렸을 때: #action=dbl|rw|reset&n=… ──
+  (function handleWidgetTap() {
+    var params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    var a = params.get("action");
+    if ((a === "dbl" || a === "rw" || a === "reset") && parseInt(params.get("n"), 10) === up.taps) {
+      act(a);
+    }
+  })();
+</script>
+</head>
+
+<body>
+  <div class="head">
+    <span class="title">감자 공방</span>
+    <span class="money" id="money">0<small>원</small></span>
+  </div>
+
+  <div class="rows">
+    <a class="row" id="r-dbl" data-action="dbl" href="#action=dbl&n=0">
+      <span class="ico">×2</span>
+      <span class="txt"><b>두 번씩 까기</b><span id="dbl-sub">꺼짐</span></span>
+      <span class="switch"><i></i></span>
+    </a>
+    <a class="row" id="r-rw" data-action="rw" href="#action=rw&n=0">
+      <span class="ico coin">원</span>
+      <span class="txt"><b id="rw-title">감자당 1원</b><span id="rw-sub">누르면 +1원</span></span>
+      <span class="plus" id="rw-plus">+</span>
+    </a>
+    <a class="row" id="r-reset" data-action="reset" href="#action=reset&n=0">
+      <span class="ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/>
+          <path d="M4.2 3.8v4.6h4.6"/>
+        </svg>
+      </span>
+      <span class="txt"><b id="reset-title">처음부터</b><span id="reset-sub">돈·업그레이드 0으로</span></span>
+    </a>
+  </div>
+
+<script>
+  function draw() {
+    var pt = loadPotato();
+    document.getElementById("money").innerHTML = pt.money.toLocaleString("ko-KR") + "<small>원</small>";
+
+    var rDbl = document.getElementById("r-dbl");
+    rDbl.className = "row" + (up.dbl ? " on" : "");
+    document.getElementById("dbl-sub").textContent = up.dbl ? "켜짐 · 두 겹씩" : "꺼짐";
+
+    var rRw = document.getElementById("r-rw");
+    rRw.className = "row" + (up.rw > 1 ? " on" : "");
+    document.getElementById("rw-title").textContent = "감자당 " + up.rw + "원";
+    var plus = document.getElementById("rw-plus");
+    if (up.rw >= MAX_RW) {
+      plus.textContent = "최대";
+      plus.className = "plus max";
+      document.getElementById("rw-sub").textContent = "더 못 올려요";
+    } else {
+      plus.textContent = "+";
+      plus.className = "plus";
+      document.getElementById("rw-sub").textContent = "누르면 +1원";
+    }
+
+    var rReset = document.getElementById("r-reset");
+    rReset.className = "row" + (up.armed ? " armed" : "");
+    document.getElementById("reset-title").textContent = up.armed ? "한 번 더 누르면" : "처음부터";
+    document.getElementById("reset-sub").textContent = up.armed ? "전부 0으로 돌아가요" : "돈·업그레이드 0으로";
+
+    ["r-dbl", "r-rw", "r-reset"].forEach(function (id) {
+      var el = document.getElementById(id);
+      el.setAttribute("href", "#action=" + el.getAttribute("data-action") + "&n=" + up.taps);
+    });
+  }
+
+  // 브라우저에서 직접 누를 때 (위젯이 아닐 때)
+  ["r-dbl", "r-rw", "r-reset"].forEach(function (id) {
+    document.getElementById(id).addEventListener("click", function (e) {
+      e.preventDefault();
+      up = loadUpgrade();
+      act(this.getAttribute("data-action"));
+      draw();
+    });
+  });
+
+  draw();
+</script>
+</body>
+</html>
